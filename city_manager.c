@@ -23,6 +23,24 @@ typedef struct
   char description_text[descriptionSize];
 }Report;
 
+void get_permissions_symbolic(mode_t mode, char *str)
+{
+    strcpy(str, "---------");
+
+  if (mode & S_IRUSR) str[0] = 'r';
+  if (mode & S_IWUSR) str[1] = 'w';
+  if (mode & S_IXUSR) str[2] = 'x';
+
+  if (mode & S_IRGRP) str[3] = 'r';
+  if (mode & S_IWGRP) str[4] = 'w';
+  if (mode & S_IXGRP) str[5] = 'x';
+
+  if (mode & S_IROTH) str[6] = 'r';
+  if (mode & S_IWOTH) str[7] = 'w';
+  if (mode & S_IXOTH) str[8] = 'x';
+
+}
+
 int main(int argc, char *argv[])
 {
   char *role=NULL;
@@ -131,6 +149,7 @@ int main(int argc, char *argv[])
      return 1;
   }
     close(fd);
+    chmod(path, 0664);
 }
 
   if(strcmp(command, "--list")==0)
@@ -139,20 +158,52 @@ int main(int argc, char *argv[])
       strcpy(path, district);
       strcat(path, "/reports.dat");
 
-      int fd=open(path,O_RDONLY);
+      struct stat st;
+   if(stat(path, &st)==-1)
+   {
+       perror("ERROR-nu exista date in district");
+       return 1;
+   }
 
-      if(fd==-1)
-      {
-         perror("ERROR-nu s-a putut deschide fisierul");
+  if(strcmp(role, "manager")==0)
+  {
+      if(!(st.st_mode & S_IRUSR))
+       {
+         printf("ERROR-Acces nepermis pentru manager\n");
          return 1;
+       }
+   }
+  else if(strcmp(role, "inspector")==0)
+      {
+         if(!(st.st_mode & S_IRGRP))
+          {
+             printf("ERROR-Acces nepermis pentru inspector\n");
+             return 1;
+          }
       }
-      printf("Lista de repoarte: %s\n", district);
 
-      Report r;
-      while(read(fd, &r, sizeof(Report))>0)
-         printf("ID:%d | Inspector:%s | Categorie:%s | Severitate:%d\nDescriere:%s\n",r.report_id,r.inspector_name,r.issue_category,r.severity_level,r.description_text);
-   close(fd);
+  char perm_str[11];
+  get_permissions_symbolic(st.st_mode, perm_str);
+
+  char *mod_time=ctime(&st.st_mtime);
+  mod_time[strlen(mod_time)-1]='\0';
+
+  printf("File: %s | Permissions: %s | Size: %lld bytes | Last modification: %s\n", path, perm_str, (long long)st.st_size, mod_time);
+
+  int fd=open(path, O_RDONLY);
+  if(fd==-1)
+  {
+    perror("ERROR-nu s-a putut deschide fisierul");
+    return 1;
   }
+
+  Report r;
+  while(read(fd, &r, sizeof(Report))>0)
+  {
+     printf("ID:%d | Inspector:%s | Category:%s | Severity:%d\nDescription:%s\n", r.report_id, r.inspector_name, r.issue_category, r.severity_level, r.description_text);
+  }
+  close(fd);
+}
 
  return 0;
 }
