@@ -111,7 +111,27 @@ int main(int argc, char *argv[])
   rep.severity_level=(rand()%3)+1;
 
   strcpy(rep.description_text, "pod picat");
- }
+
+  char path[512];
+  strcpy(path, district);
+  strcat(path, "/reports.dat");
+
+  int fd=open(path, O_WRONLY | O_CREAT | O_APPEND, 0664);
+
+  if(fd==-1)
+  {
+    perror("ERROR-nu s-a putut deschide fisierul");
+    return 1;
+  }
+
+  if(write(fd, &rep, sizeof(Report))==-1)
+  {
+     perror("ERROR-nu s-a putut scrie in fisier");
+     close(fd);
+     return 1;
+  }
+    close(fd);
+}
 
  return 0;
 }
