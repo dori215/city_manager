@@ -131,9 +131,30 @@ int main(int argc, char *argv[])
 
   strcpy(rep.description_text, "pod picat");
 
+  struct stat st_rep;
   char path[512];
   strcpy(path, district);
   strcat(path, "/reports.dat");
+
+  if(stat(path, &st_rep)==0)
+  {
+      if(strcmp(role, "manager")==0)
+        {
+            if(!(st_rep.st_mode&S_IWUSR))
+                {
+                    fprintf(stderr,"ERROR-Managerul nu are drept de scriere");
+                    return 1;
+                 }
+         }
+      else if (strcmp(role, "inspector")==0)
+        {
+            if(!(st_rep.st_mode&S_IWGRP))
+              {
+                    fprintf(stderr,"ERROR-Inspectorul nu are drept de scriere");
+                    return 1;
+              }
+        }
+  }
 
   int fd=open(path, O_WRONLY | O_CREAT | O_APPEND, 0664);
 
@@ -145,14 +166,24 @@ int main(int argc, char *argv[])
 
   if(write(fd, &rep, sizeof(Report))==-1)
   {
-     perror("ERROR-nu s-a putut scrie in fisier");
+     perror("ERROR-nu s-a putut scrie in fisier\n");
      close(fd);
      return 1;
   }
+   // creare fisier district.cfg
+   struct stat st_cfg;
     char cfg_path[512];
     strcpy(cfg_path, district);
     strcat(cfg_path, "/district.cfg");
 
+    if(stat(cfg_path, &st_cfg)==0)
+    {
+        if(!(st_cfg.st_mode & S_IRUSR))
+        {
+            fprintf(stderr, "ERROR-acces interzis, lipseste S_IRUSR\n");
+            return 1;
+         }
+    }
     int fd_cfg=open(cfg_path, O_WRONLY | O_CREAT, 0640);
     if(fd_cfg!=-1)
       {
@@ -163,6 +194,34 @@ int main(int argc, char *argv[])
     else perror("ERROR-nu s-a putut crea district.cfg");
     close(fd);
     chmod(path, 0664);
+
+    // creare fisier logged_district
+    struct stat st_log;
+    char log_path[512];
+    strcpy(log_path, district);
+    strcat(log_path, "/logged_district");
+
+    if(stat(log_path, &st_log)==0)
+    {
+      if(strcmp(role,"inspector")==0 && !(st_log.st_mode & S_IWGRP))
+        {
+            fprintf(stderr, "ERROR-rolul inspector nu are permisiune sa scrie");
+            return 1;
+         }
+    }
+    if(strcmp(role, "manager")==0)
+    {
+        int fd_log=open(log_path, O_WRONLY | O_CREAT | O_APPEND, 0644);
+        if(fd_log!=-1)
+        {
+            char log_entry[512];
+            sprintf(log_entry, "%ld | %s | %s\n ", time(NULL), nume_utilizator, command);
+            write(fd_log, log_entry, strlen(log_entry));
+            close(fd_log);
+            chmod(log_path,0644);
+         }
+      else perror("ERROR-nu s-a putut deschide logged_district");
+    }
 }
 
   if(strcmp(command, "--list")==0)
