@@ -94,6 +94,24 @@ int main(int argc, char *argv[])
     }
     chmod(district,0750);
     printf("Directorul '%s' e gata cu permisiunile corecte\n", district);
-  }
+
+  Report rep;
+
+  srand(time(NULL));
+  rep.report_id=rand()%1000;
+  rep.timestamp=time(NULL);
+  if(user!=NULL)
+        strncpy(rep.inspector_name, user, nameSize-1);
+  else strcpy(rep.inspector_name, "Anonim");
+
+   rep.latitude=(float)(rand()%90);
+   rep.longitude=(float)(rand()%180);
+
+  strcpy(rep.issue_category, "road");
+  rep.severity_level=(rand()%3)+1;
+
+  strcpy(rep.description_text, "pod picat");
+ }
+
  return 0;
 }
