@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #define nameSize 64
 #define categorySize 32
@@ -24,28 +28,32 @@ int main(int argc, char *argv[])
   char *role=NULL;
   char *user=NULL;
   char *command=NULL;
+  char *district=NULL;
 
   int index=1;
 
   for(int i=1;i<argc;i++)
     {
-      if(command==NULL)
-	{
-	  command=argv[i];
-	  index=i;
-	  break;
-	}
-      else if((strcmp(argv[i], "--role")==0) & (i+1<argc))
+   if(strcmp(argv[i], "--role")==0 && i+1<argc)
 	{
 	  role=argv[i+1];
 	  i++;
 	}
-      else if((strcmp(argv[i], "--user")==0) & (i+1<argc))
+      else if((strcmp(argv[i], "--user")==0) && i+1<argc)
 	{
 	  user=argv[i+1];
 	  i++;
 	}
+      else if(command==NULL )
+   {
+     command=argv[i];
+      if(i+1<argc)
+    {
+       district=argv[i+1];
+       i++;
     }
+  }
+ }
 
   if(!role)
     {
@@ -59,11 +67,33 @@ int main(int argc, char *argv[])
       return 1;
     }
 
+  if(!district)
+    {
+      fprintf(stderr, "ERROR-lipseste district\n");
+      return 1;
+    }
+
+    char *nume_utilizator;
+    if(user!=NULL)
+         nume_utilizator=user;
+    else
+         nume_utilizator="Necunoscut";
+
+    printf("Rol: %s\nUser: %s\nCommand: %s\nDistrict: %s\n",role,nume_utilizator,command,district);
+
   if(strcmp(command, "--add")==0)
-    if(index+1>=argc)
+  {
+      struct stat st={0};
+    if(stat(district, &st)==-1)
+    {
+       if(mkdir(district, 0750)==-1)
       {
-	fprintf(stderr,"ERROR-lipseste district_id\n");
-	return 1;
+          perror("ERROR-nu s-a putut crea");
+          return 1;
       }
+    }
+    chmod(district,0750);
+    printf("Directorul '%s' e gata cu permisiunile corecte\n", district);
+  }
  return 0;
 }
