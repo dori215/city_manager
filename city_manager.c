@@ -133,5 +133,26 @@ int main(int argc, char *argv[])
     close(fd);
 }
 
+  if(strcmp(command, "--list")==0)
+  {
+      char path[512];
+      strcpy(path, district);
+      strcat(path, "/reports.dat");
+
+      int fd=open(path,O_RDONLY);
+
+      if(fd==-1)
+      {
+         perror("ERROR-nu s-a putut deschide fisierul");
+         return 1;
+      }
+      printf("Lista de repoarte: %s\n", district);
+
+      Report r;
+      while(read(fd, &r, sizeof(Report))>0)
+         printf("ID:%d | Inspector:%s | Categorie:%s | Severitate:%d\nDescriere:%s\n",r.report_id,r.inspector_name,r.issue_category,r.severity_level,r.description_text);
+   close(fd);
+  }
+
  return 0;
 }
