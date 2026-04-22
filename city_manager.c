@@ -49,6 +49,7 @@ int main(int argc, char *argv[])
   char *district=NULL;
 
   int index=1;
+  int view_id=-1;
 
   for(int i=1;i<argc;i++)
     {
@@ -69,6 +70,11 @@ int main(int argc, char *argv[])
     {
        district=argv[i+1];
        i++;
+    }
+    if(strcmp(command,"--view")==0 && i+1<argc)
+    {
+        view_id=atoi(argv[i+1]);
+        i++;
     }
   }
  }
@@ -118,6 +124,8 @@ int main(int argc, char *argv[])
 
   srand(time(NULL));
   rep.report_id=rand()%1000;
+  printf("Raportul a fost creat cu ID-ul: %d\n", rep.report_id);
+
   rep.timestamp=time(NULL);
   if(user!=NULL)
         strncpy(rep.inspector_name, user, nameSize-1);
@@ -277,5 +285,58 @@ int main(int argc, char *argv[])
   close(fd);
 }
 
+  if(strcmp(command, "--view")==0)
+  {
+      if(view_id==-1)
+        {
+            fprintf(stderr, "ERROR-lipseste id-ul\n");
+            return 1;
+        }
+      char path[512];
+      struct stat st;
+      strcpy(path, district);
+      strcat(path, "/reports.dat");
+
+      if(stat(path, &st)==-1)
+      {
+          perror("ERROR-nu exista date in district");
+          return 1;
+      }
+      if(strcmp(role, "manager")==0)
+       {
+          if(!(st.st_mode & S_IRUSR))
+               {
+                      fprintf(stderr, "ERROR-acces nepermis manager\n");
+                      return 1;
+               }
+        }
+      else if(strcmp(role, "inspector")==0)
+            if(!(st.st_mode & S_IRGRP))
+                  {
+                     fprintf(stderr, "ERROR-acces nepermis pentru inspector\n");
+                     return 1;
+                  }
+
+  int fd=open(path, O_RDONLY);
+  if(fd==-1)
+     {
+         perror("ERROR-nu s-a putut deschide fisierul\n");
+         return 1;
+     }
+
+  Report r;
+  int gasit=0;
+  while(read(fd, &r, sizeof(Report))>0)
+    {
+        if(r.report_id==view_id)
+          {
+               printf("Detalii raport ID:%d\nInspector:%s | Categorie:%s | Severitate:%d | Locatie: Lat %.4f; Long %.4f | Descriere:%s | Data:%s ", r.report_id, r.inspector_name, r.issue_category, r.severity_level, r.latitude, r.longitude, r.description_text, ctime(&r.timestamp));
+               gasit=1;
+               break;
+          }
+    }
+   if(!gasit) printf("Raportul nu a fost gasit in district\n");
+   close(fd);
+  }
  return 0;
 }
