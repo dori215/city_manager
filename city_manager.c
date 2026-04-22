@@ -99,6 +99,7 @@ int main(int argc, char *argv[])
 
     printf("Rol: %s\nUser: %s\nCommand: %s\nDistrict: %s\n",role,nume_utilizator,command,district);
 
+
   if(strcmp(command, "--add")==0)
   {
       struct stat st={0};
@@ -148,6 +149,18 @@ int main(int argc, char *argv[])
      close(fd);
      return 1;
   }
+    char cfg_path[512];
+    strcpy(cfg_path, district);
+    strcat(cfg_path, "/district.cfg");
+
+    int fd_cfg=open(cfg_path, O_WRONLY | O_CREAT, 0640);
+    if(fd_cfg!=-1)
+      {
+          write(fd_cfg,"2",1);
+          close(fd_cfg);
+          chmod(cfg_path,0640);
+      }
+    else perror("ERROR-nu s-a putut crea district.cfg");
     close(fd);
     chmod(path, 0664);
 }
