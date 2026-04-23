@@ -96,19 +96,20 @@ int main(int argc, char *argv[])
 
   int index=1;
   int view_id=-1;
+  int remove_id=-1;
 
   for(int i=1;i<argc;i++)
-    {
+   {
    if(strcmp(argv[i], "--role")==0 && i+1<argc)
-	{
-	  role=argv[i+1];
-	  i++;
-	}
+    {
+      role=argv[i+1];
+      i++;
+    }
       else if((strcmp(argv[i], "--user")==0) && i+1<argc)
-	{
-	  user=argv[i+1];
-	  i++;
-	}
+    {
+      user=argv[i+1];
+      i++;
+    }
       else if(command==NULL )
    {
      command=argv[i];
@@ -121,6 +122,11 @@ int main(int argc, char *argv[])
     {
         view_id=atoi(argv[i+1]);
         i++;
+    }
+    else if(strcmp(command,"--remove_report")==0 && i+1<argc)
+    {
+       remove_id=atoi(argv[i+1]);
+       i++;
     }
   }
  }
@@ -330,5 +336,69 @@ int main(int argc, char *argv[])
    if(!gasit) printf("Raportul nu a fost gasit in district\n");
    close(fd);
   }
- return 0;
+
+  if(strcmp(command, "--remove_report")==0)
+    {
+         if(strcmp(role, "manager")!=0)
+            {
+                  fprintf(stderr, "ERROR-doar managerul poate sterge\n");
+                  return 1;
+            }
+
+        char path[512];
+        strcpy(path, district);
+        strcat(path, "/reports.dat");
+        if(check_access(path, role, "write")==1)
+            return 1;
+
+        int fd=open(path, O_RDWR);
+        if(fd==-1)
+           {
+                perror("ERROR-nu s-a putut deschide fisierul");
+                return 1;
+           }
+
+        Report r;
+        off_t pos=0;
+        int gasit=0;
+        while(read(fd, &r, sizeof(Report))>0)
+            {
+               if(r.report_id==remove_id)
+                 {
+                    gasit=1;
+                    break;
+                 }
+            pos=pos+sizeof(Report);
+            }
+
+    if(gasit)
+    {
+        Report next;
+        while(read(fd, &next, sizeof(Report))>0)
+            {
+                lseek(fd, pos, SEEK_SET);
+                write(fd, &next, sizeof(Report));
+                pos=pos+sizeof(Report);
+                lseek(fd, pos+sizeof(Report), SEEK_SET);
+            }
+        struct stat st;
+        fstat(fd, &st);
+        ftruncate(fd, st.st_size-sizeof(Report));
+        printf("Raportul a fost sters\n");
+    }
+    else printf("Raportul nu a fost gasit\n");
+    close(fd);
+
+    char log_p[512];
+    sprintf(log_p, "%s/logged_district", district);
+    int fl=open(log_p, O_WRONLY | O_APPEND);
+    if(fl!=-1)
+     {
+        char l[256];
+        sprintf(l, "%ld | %s | remove %d\n", time(NULL), nume_utilizator, remove_id);
+        write(fl, l, strlen(l));
+        close(fl);
+     }
+    }
+  return 0;
 }
