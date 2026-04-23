@@ -97,6 +97,7 @@ int main(int argc, char *argv[])
   int index=1;
   int view_id=-1;
   int remove_id=-1;
+  int threshold_value=-1;
 
   for(int i=1;i<argc;i++)
    {
@@ -127,6 +128,11 @@ int main(int argc, char *argv[])
     {
        remove_id=atoi(argv[i+1]);
        i++;
+    }
+    else if(strcmp(command,"--update_threshold")==0 && i+1<argc)
+    {
+        threshold_value=atoi(argv[i+1]);
+        i++;
     }
   }
  }
@@ -399,6 +405,56 @@ int main(int argc, char *argv[])
         write(fl, l, strlen(l));
         close(fl);
      }
+    }
+
+  if(strcmp(command, "--update_threshold")==0)
+    {
+        if(strcmp(role, "manager")!=0)
+           {
+                fprintf(stderr, "ERROR-doar managerul poate modifica pragul\n");
+                return 1;
+           }
+
+        char path[512];
+        strcpy(path, district);
+        strcat(path, "/district.cfg");
+        struct stat st;
+
+        if(stat(path, &st)==-1)
+        {
+             perror("ERROR-nu s-a putut accesa district.cfg");
+             return 1;
+        }
+        if((st.st_mode & 0777)!=0640)
+         {
+             fprintf(stderr, "ERROR-permisiunile nu sunt 640\n");
+             return 1;
+         }
+
+         int fd=open(path, O_WRONLY | O_TRUNC);
+         if(fd==-1)
+         {
+              perror("ERROR-nu s-a putut deschide fisierul");
+              return 1;
+         }
+
+        char buf[16];
+        int len=sprintf(buf, "%d", threshold_value);
+        write(fd, buf, len);
+        close(fd);
+
+        printf("Pragul de severitate actualizat\n");
+
+        char log_p[512];
+        sprintf(log_p, "%s/logged_district", district);
+        int fd_log=open(log_p, O_WRONLY | O_APPEND);
+        if(fd_log!=-1)
+           {
+                char entry[256];
+                sprintf(entry, "%ld | %s | %s | update_threshold %d\n", time(NULL), role, nume_utilizator, threshold_value);
+                write(fd_log, entry, strlen(entry));
+                close(fd_log);
+           }
     }
   return 0;
 }
