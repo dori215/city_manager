@@ -23,6 +23,52 @@ typedef struct
   char description_text[descriptionSize];
 }Report;
 
+int check_access(const char *file_path, const char *role, const char *action_type)
+{
+        struct stat st;
+        if (stat(file_path, &st)==-1)
+            return 0;
+        if(strcmp(role,"manager")==0)
+           {
+               if(strcmp(action_type,"read")==0)
+               {
+                 if(!(st.st_mode & S_IRUSR))
+                       {
+                            fprintf(stderr, "ERROR-manager access denied\n");
+                            return 1;
+                       }
+               }
+               if(strcmp(action_type,"write")==0)
+               {
+                 if(!(st.st_mode & S_IWUSR))
+                       {
+                            fprintf(stderr, "ERROR-manager access denied\n");
+                            return 1;
+                       }
+               }
+           }
+       else if(strcmp(role,"inspector")==0)
+          {
+                if(strcmp(action_type,"read")==0)
+                 {
+                  if(!(st.st_mode & S_IRGRP))
+                    {
+                        fprintf(stderr, "ERROR-inspector access denied\n");
+                        return 1;
+                    }
+                 }
+                if(strcmp(action_type,"write")==0)
+                 {
+                  if(!(st.st_mode & S_IWGRP))
+                    {
+                         fprintf(stderr, "ERROR-inspector access denied\n");
+                         return 1;
+                    }
+                 }
+      }
+    return 0;
+}
+
 void get_permissions_symbolic(mode_t mode, char *str)
 {
     strcpy(str, "---------");
@@ -139,30 +185,12 @@ int main(int argc, char *argv[])
 
   strcpy(rep.description_text, "pod picat");
 
-  struct stat st_rep;
   char path[512];
   strcpy(path, district);
   strcat(path, "/reports.dat");
 
-  if(stat(path, &st_rep)==0)
-  {
-      if(strcmp(role, "manager")==0)
-        {
-            if(!(st_rep.st_mode&S_IWUSR))
-                {
-                    fprintf(stderr,"ERROR-Managerul nu are drept de scriere");
-                    return 1;
-                 }
-         }
-      else if (strcmp(role, "inspector")==0)
-        {
-            if(!(st_rep.st_mode&S_IWGRP))
-              {
-                    fprintf(stderr,"ERROR-Inspectorul nu are drept de scriere");
-                    return 1;
-              }
-        }
-  }
+  if(check_access(path, role, "write")==1)
+       return 1;
 
   int fd=open(path, O_WRONLY | O_CREAT | O_APPEND, 0664);
 
@@ -184,14 +212,9 @@ int main(int argc, char *argv[])
     strcpy(cfg_path, district);
     strcat(cfg_path, "/district.cfg");
 
-    if(stat(cfg_path, &st_cfg)==0)
-    {
-        if(!(st_cfg.st_mode & S_IRUSR))
-        {
-            fprintf(stderr, "ERROR-acces interzis, lipseste S_IRUSR\n");
-            return 1;
-         }
-    }
+    if(check_access(cfg_path, role, "write")==1)
+       return 1;
+
     int fd_cfg=open(cfg_path, O_WRONLY | O_CREAT, 0640);
     if(fd_cfg!=-1)
       {
@@ -204,19 +227,13 @@ int main(int argc, char *argv[])
     chmod(path, 0664);
 
     // creare fisier logged_district
-    struct stat st_log;
     char log_path[512];
     strcpy(log_path, district);
     strcat(log_path, "/logged_district");
 
-    if(stat(log_path, &st_log)==0)
-    {
-      if(strcmp(role,"inspector")==0 && !(st_log.st_mode & S_IWGRP))
-        {
-            fprintf(stderr, "ERROR-rolul inspector nu are permisiune sa scrie");
-            return 1;
-         }
-    }
+    if(check_access(log_path, role, "write")==1)
+        return 1;
+
     if(strcmp(role, "manager")==0)
     {
         int fd_log=open(log_path, O_WRONLY | O_CREAT | O_APPEND, 0644);
@@ -238,29 +255,15 @@ int main(int argc, char *argv[])
       strcpy(path, district);
       strcat(path, "/reports.dat");
 
+      if(check_access(path, role, "read")==1)
+            return 1;
+
       struct stat st;
    if(stat(path, &st)==-1)
    {
        perror("ERROR-nu exista date in district");
        return 1;
    }
-
-  if(strcmp(role, "manager")==0)
-  {
-      if(!(st.st_mode & S_IRUSR))
-       {
-         printf("ERROR-Acces nepermis pentru manager\n");
-         return 1;
-       }
-   }
-  else if(strcmp(role, "inspector")==0)
-      {
-         if(!(st.st_mode & S_IRGRP))
-          {
-             printf("ERROR-Acces nepermis pentru inspector\n");
-             return 1;
-          }
-      }
 
   char perm_str[11];
   get_permissions_symbolic(st.st_mode, perm_str);
@@ -297,25 +300,14 @@ int main(int argc, char *argv[])
       strcpy(path, district);
       strcat(path, "/reports.dat");
 
+      if(check_access(path, role, "read")==1)
+         return 1;
+
       if(stat(path, &st)==-1)
       {
           perror("ERROR-nu exista date in district");
           return 1;
       }
-      if(strcmp(role, "manager")==0)
-       {
-          if(!(st.st_mode & S_IRUSR))
-               {
-                      fprintf(stderr, "ERROR-acces nepermis manager\n");
-                      return 1;
-               }
-        }
-      else if(strcmp(role, "inspector")==0)
-            if(!(st.st_mode & S_IRGRP))
-                  {
-                     fprintf(stderr, "ERROR-acces nepermis pentru inspector\n");
-                     return 1;
-                  }
 
   int fd=open(path, O_RDONLY);
   if(fd==-1)
