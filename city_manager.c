@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
   int threshold_value=-1;
 
   for(int i=1;i<argc;i++)
-   {
+  {
    if(strcmp(argv[i], "--role")==0 && i+1<argc)
     {
       role=argv[i+1];
@@ -162,6 +162,21 @@ int main(int argc, char *argv[])
          nume_utilizator="Necunoscut";
 
     printf("Rol: %s\nUser: %s\nCommand: %s\nDistrict: %s\n",role,nume_utilizator,command,district);
+
+    struct stat link_info;
+    char link_to_check[256];
+    sprintf(link_to_check,"active_reports-%s",district);
+
+    if(lstat(link_to_check,&link_info)==0)
+    {
+       if(S_ISLNK(link_info.st_mode))
+        {
+            struct stat target_info;
+            if(stat(link_to_check,&target_info)==-1)
+                fprintf(stderr,"WARNING-link ul este dangling\n");
+            else printf("Link ul simbolic e valid\n");
+        }
+    }
 
 
   if(strcmp(command, "--add")==0)
@@ -237,6 +252,12 @@ int main(int argc, char *argv[])
     else perror("ERROR-nu s-a putut crea district.cfg");
     close(fd);
     chmod(path, 0664);
+
+    //creare/actualizare symbolic link
+    unlink(link_to_check);
+    if(symlink(path, link_to_check)==-1)
+        perror("WARNING-nu s a putut crea symbolic link\n");
+   else printf("Link actualizat\n");
 
     // creare fisier logged_district
     char log_path[512];
