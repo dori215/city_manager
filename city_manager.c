@@ -11,7 +11,7 @@
 #define categorySize 32
 #define descriptionSize 256
 
-
+//structura pt rapoarte
 typedef struct
 {
   int report_id;
@@ -24,6 +24,7 @@ typedef struct
   char description_text[descriptionSize];
 }Report;
 
+//verifica daca un symbolic link duce undeva sau e dangling
 void check_symlink_status(const char *link_name)
 {
     struct stat link_info;
@@ -32,7 +33,7 @@ void check_symlink_status(const char *link_name)
             if(S_ISLNK(link_info.st_mode))
             {
                 struct stat target_info;
-                 if(stat(link_name, &target_info) == -1)
+                 if(stat(link_name, &target_info) == -1)//stat cauta fisierul tinta
                     fprintf(stderr,"WARNING-link ul este dangling\n");
                 else printf("Link ul simbolic este valid\n");
             }
@@ -47,7 +48,7 @@ int check_access(const char *file_path, const char *role, const char *action_typ
 
 
         if(strcmp(role,"manager")==0)
-           {
+           {  //managerul-bitii de owner
                if(strcmp(action_type,"read")==0)
                {
                  if(!(st.st_mode & S_IRUSR))
@@ -66,7 +67,7 @@ int check_access(const char *file_path, const char *role, const char *action_typ
                }
            }
        else if(strcmp(role,"inspector")==0)
-          {
+          {    //inspectorul-bitii de group
                 if(strcmp(action_type,"read")==0)
                  {
                   if(!(st.st_mode & S_IRGRP))
@@ -87,6 +88,7 @@ int check_access(const char *file_path, const char *role, const char *action_typ
     return 0;
 }
 
+//transformare biti de permisiuni -rwxrwxrwx
 void get_permissions_symbolic(mode_t mode, char *str)
 {
     strcpy(str, "---------");
@@ -120,6 +122,7 @@ int parse_condition(const char *input, char *field, char *op, char *value)
       return sscanf(input, "%[^:]:%[^:]:%s", field, op, value)==3;
 }
 
+//verificare daca raportul respecta o cond. de filtrare
 int match_condition(Report *r, const char *field, const char *op, const char *value)
 {
       if(strcmp(field,"severity")==0) return evaluate_comparison(r->severity_level-atoi(value), op);
@@ -170,6 +173,7 @@ int main(int argc, char *argv[])
        district=argv[i+1];
        i++;
     }
+    //indentificam ce comanda a fost apelata
     if(strcmp(command,"--view")==0 && i+1<argc)
     {
         view_id=atoi(argv[i+1]);
@@ -186,10 +190,10 @@ int main(int argc, char *argv[])
         i++;
     }
     else if(strcmp(command,"--filter")==0 && i+1<argc)
-      filter_start=i+1;
+      filter_start=i+1;//salvam unde incep cond. de filtrare in argv
   }
  }
-
+ //verificari
   if(!role)
     {
       fprintf(stderr, "ERROR-lipseste rolul\n");
@@ -221,6 +225,7 @@ int main(int argc, char *argv[])
     sprintf(link_to_check,"active_reports-%s",district);
     check_symlink_status(link_to_check);
 
+    //logica filter
     if(strcmp(command,"--filter")==0)
     {
         char path[512];
@@ -236,15 +241,17 @@ int main(int argc, char *argv[])
 
         Report r;
         int found=0;
+        //citire fisier binar raport cu raport
         while(read(fd,&r,sizeof(Report))>0)
         {
             int satisfies_all=1;
-
+            //verificare cond. primite in linia de comanda
             for(int k=filter_start;k<argc;k++)
             {
                 char f[64], o[8], v[128];
                 if(parse_condition(argv[k],f,o,v))
                 {
+                      //daca macar o cond esueaza raportul nu trece filtrul
                       if(match_condition(&r,f,o,v)==0)
                       {
                             satisfies_all=0;
@@ -262,14 +269,16 @@ int main(int argc, char *argv[])
         close(fd);
     }
 
+  //logica add
   if(strcmp(command, "--add")==0)
   {
       struct stat st={0};
+    //daca directorul districtului nu exista, il cream
     if(stat(district, &st)==-1)
     {
        if(mkdir(district, 0750)==-1)
       {
-          perror("ERROR-nu s-a putut crea");
+          perror("ERROR-nu s-a putut crea\n");
           return 1;
       }
     }
@@ -278,6 +287,7 @@ int main(int argc, char *argv[])
 
   Report rep;
 
+ //generare date random pt raport
   srand(time(NULL));
   rep.report_id=rand()%1000;
   printf("Raportul a fost creat cu ID-ul: %d\n", rep.report_id);
@@ -299,17 +309,20 @@ int main(int argc, char *argv[])
   strcpy(path, district);
   strcat(path, "/reports.dat");
 
+  //verificam daca rolul are voie sa scrie in reports.daat
   if(check_access(path, role, "write")==1)
        return 1;
 
+  //deschidem fisierul pt append/sau il cream
   int fd=open(path, O_WRONLY | O_CREAT | O_APPEND, 0664);
 
   if(fd==-1)
   {
-    perror("ERROR-nu s-a putut deschide fisierul");
+    perror("ERROR-nu s-a putut deschide fisierul\n");
     return 1;
   }
 
+ //salvam structura in fisier
   if(write(fd, &rep, sizeof(Report))==-1)
   {
      perror("ERROR-nu s-a putut scrie in reports.dat\n");
@@ -319,7 +332,7 @@ int main(int argc, char *argv[])
     close(fd);
     chmod(path, 0664);
 
-   // creare fisier district.cfg
+   // creare fisier district.cfg-doar de manager
     if(strcmp(role,"manager")==0)
     {
         char cfg_path[512];
@@ -335,17 +348,17 @@ int main(int argc, char *argv[])
                       close(fd_cfg);
                       chmod(cfg_path,0640);
                   }
-                   else perror("ERROR-nu s-a putut crea district.cfg");
+                   else perror("ERROR-nu s-a putut crea district.cfg\n");
         }
     }
 
-    //creare/actualizare symbolic link
+    //actualizare symbolic link
     unlink(link_to_check);
     if(symlink(path, link_to_check)==-1)
         perror("WARNING-nu s a putut crea symbolic link\n");
    else printf("Link actualizat\n");
 
-    // creare fisier logged_district
+    // creare fisier logged_district-scris de manager
     if(strcmp(role,"manager")==0)
     {
         char log_path[512];
@@ -361,10 +374,11 @@ int main(int argc, char *argv[])
             close(fd_log);
             chmod(log_path,0644);
          }
-      else perror("ERROR-nu s-a putut deschide logged_district");
+      else perror("ERROR-nu s-a putut deschide logged_district\n");
     }
 }
 
+ //logica list
   if(strcmp(command, "--list")==0)
   {
       char path[512];
@@ -377,10 +391,11 @@ int main(int argc, char *argv[])
       struct stat st;
    if(stat(path, &st)==-1)
    {
-       perror("ERROR-nu exista date in district");
+       perror("ERROR-nu exista date in district\n");
        return 1;
    }
 
+  //afisare date fisier
   char perm_str[11];
   get_permissions_symbolic(st.st_mode, perm_str);
 
@@ -392,10 +407,11 @@ int main(int argc, char *argv[])
   int fd=open(path, O_RDONLY);
   if(fd==-1)
   {
-    perror("ERROR-nu s-a putut deschide fisierul");
+    perror("ERROR-nu s-a putut deschide fisierul\n");
     return 1;
   }
 
+ //afisare rapoarte
   Report r;
   while(read(fd, &r, sizeof(Report))>0)
   {
@@ -404,6 +420,7 @@ int main(int argc, char *argv[])
   close(fd);
 }
 
+//logica view
   if(strcmp(command, "--view")==0)
   {
       if(view_id==-1)
@@ -421,7 +438,7 @@ int main(int argc, char *argv[])
 
       if(stat(path, &st)==-1)
       {
-          perror("ERROR-nu exista date in district");
+          perror("ERROR-nu exista date in district\n");
           return 1;
       }
 
@@ -434,11 +451,12 @@ int main(int argc, char *argv[])
 
   Report r;
   int gasit=0;
+  //cautam in fisier raportul cu id ul care e specificat
   while(read(fd, &r, sizeof(Report))>0)
     {
         if(r.report_id==view_id)
           {
-               printf("Detalii raport ID:%d\nInspector:%s | Categorie:%s | Severitate:%d | Locatie: Lat %.4f; Long %.4f | Descriere:%s | Data:%s ", r.report_id, r.inspector_name, r.issue_category, r.severity_level, r.latitude, r.longitude, r.description_text, ctime(&r.timestamp));
+               printf("Raport details ID:%d | Inspector:%s | Category:%s | Severity:%d | Location: Lat %.4f; Long %.4f | Description:%s | Date:%s ", r.report_id, r.inspector_name, r.issue_category, r.severity_level, r.latitude, r.longitude, r.description_text, ctime(&r.timestamp));
                gasit=1;
                break;
           }
@@ -447,6 +465,7 @@ int main(int argc, char *argv[])
    close(fd);
   }
 
+ //logica remove
   if(strcmp(command, "--remove_report")==0)
     {
          if(strcmp(role, "manager")!=0)
@@ -461,7 +480,7 @@ int main(int argc, char *argv[])
         if(check_access(path, role, "write")==1)
             return 1;
 
-        int fd=open(path, O_RDWR);
+        int fd=open(path, O_RDWR);//deschidem cu read write pt a putea modifica fisieru
         if(fd==-1)
            {
                 perror("ERROR-nu s-a putut deschide fisierul");
@@ -471,6 +490,7 @@ int main(int argc, char *argv[])
         Report r;
         off_t pos=0;
         int gasit=0;
+        //cautam raportul pe care vrem sa-l stergem
         while(read(fd, &r, sizeof(Report))>0)
             {
                if(r.report_id==remove_id)
@@ -486,11 +506,12 @@ int main(int argc, char *argv[])
         Report next;
         while(read(fd, &next, sizeof(Report))>0)
             {
-                lseek(fd, pos, SEEK_SET);
-                write(fd, &next, sizeof(Report));
+                lseek(fd, pos, SEEK_SET);//mergem la pozitia raportului sters
+                write(fd, &next, sizeof(Report));//suprascriem
                 pos=pos+sizeof(Report);
-                lseek(fd, pos+sizeof(Report), SEEK_SET);
+                lseek(fd, pos+sizeof(Report), SEEK_SET);//sarim la urm pt citire
             }
+        //modificam size ul
         struct stat st;
         fstat(fd, &st);
         ftruncate(fd, st.st_size-sizeof(Report));
@@ -499,6 +520,7 @@ int main(int argc, char *argv[])
     else printf("Raportul nu a fost gasit\n");
     close(fd);
 
+    //logam stergerea
     char log_p[512];
     sprintf(log_p, "%s/logged_district", district);
     int fl=open(log_p, O_WRONLY | O_CREAT |  O_APPEND, 0644);
@@ -511,6 +533,7 @@ int main(int argc, char *argv[])
      }
     }
 
+  //logica update threshold
   if(strcmp(command, "--update_threshold")==0)
     {
         if(strcmp(role, "manager")!=0)
@@ -528,7 +551,7 @@ int main(int argc, char *argv[])
         {
              printf("district.cfg nu exista, va fi creat\n");
         }
-        else if((st.st_mode & 0777)!=0640)
+        else if((st.st_mode & 0777)!=0640)//verificare daca a umblat cineva la permisiuni manual-doar managerul poate scrie
          {
              fprintf(stderr, "ERROR-permisiunile nu sunt 640\n");
              return 1;
@@ -548,6 +571,7 @@ int main(int argc, char *argv[])
 
         printf("Pragul de severitate actualizat\n");
 
+        //logam modificarea pragului
         char log_p[512];
         sprintf(log_p, "%s/logged_district", district);
         int fd_log=open(log_p, O_WRONLY | O_CREAT | O_APPEND, 0644);
