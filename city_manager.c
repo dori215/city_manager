@@ -11,6 +11,7 @@
 #define categorySize 32
 #define descriptionSize 256
 
+
 typedef struct
 {
   int report_id;
@@ -103,6 +104,7 @@ void get_permissions_symbolic(mode_t mode, char *str)
   if (mode & S_IXOTH) str[8] = 'x';
 
 }
+
 int evaluate_comparison(int res, const char *op) {
     if (strcmp(op, "==")==0) return res==0;
     if (strcmp(op, "!=")==0) return res!=0;
