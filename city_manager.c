@@ -24,6 +24,30 @@ typedef struct
   char description_text[descriptionSize];
 }Report;
 
+//functie pt logare in logged_district-doar managerul poate scrie
+void log_operation(const char *district, const char *role, const char *user, const char *command)
+{
+        if(strcmp(role,"manager")!=0)
+            {
+                 printf("Doar managerul are drept de scriere in logged_district\n");
+                 return;
+            }
+        char log_path[512];
+        strcpy(log_path, district);
+        strcat(log_path, "/logged_district");
+
+        int fd_log=open(log_path, O_WRONLY | O_CREAT | O_APPEND, 0644);
+        if(fd_log!=-1)
+        {
+            char entry[512];
+            sprintf(entry, "%ld | %s | %s | %s\n", time(NULL), role, user, command);
+            write(fd_log, entry, strlen(entry));
+            close(fd_log);
+            chmod(log_path, 0644);
+        }
+    else perror("ERROR-nu s-a putut deschide logged_district\n");
+}
+
 //verifica daca un symbolic link duce undeva sau e dangling
 void check_symlink_status(const char *link_name)
 {
@@ -267,6 +291,9 @@ int main(int argc, char *argv[])
         }
         if(!found) printf("Nu corespunde niciun raport\n");
         close(fd);
+
+        //logare
+        log_operation(district, role, nume_utilizator, "--filter");
     }
 
   //logica add
@@ -359,23 +386,7 @@ int main(int argc, char *argv[])
    else printf("Link actualizat\n");
 
     // creare fisier logged_district-scris de manager
-    if(strcmp(role,"manager")==0)
-    {
-        char log_path[512];
-        strcpy(log_path, district);
-        strcat(log_path, "/logged_district");
-
-        int fd_log=open(log_path, O_WRONLY | O_CREAT | O_APPEND, 0644);
-        if(fd_log!=-1)
-        {
-            char log_entry[512];
-            sprintf(log_entry, "%ld | %s | %s | %s\n ", time(NULL), role, nume_utilizator, command);
-            write(fd_log, log_entry, strlen(log_entry));
-            close(fd_log);
-            chmod(log_path,0644);
-         }
-      else perror("ERROR-nu s-a putut deschide logged_district\n");
-    }
+    log_operation(district, role, nume_utilizator, "--add");
 }
 
  //logica list
@@ -418,6 +429,7 @@ int main(int argc, char *argv[])
      printf("ID:%d | Inspector:%s | Category:%s | Severity:%d\nDescription:%s\n", r.report_id, r.inspector_name, r.issue_category, r.severity_level, r.description_text);
   }
   close(fd);
+  log_operation(district, role, nume_utilizator, "--list");
 }
 
 //logica view
@@ -463,6 +475,8 @@ int main(int argc, char *argv[])
     }
    if(!gasit) printf("Raportul nu a fost gasit in district\n");
    close(fd);
+
+    log_operation(district, role, nume_utilizator, "--view");
   }
 
  //logica remove
@@ -521,16 +535,8 @@ int main(int argc, char *argv[])
     close(fd);
 
     //logam stergerea
-    char log_p[512];
-    sprintf(log_p, "%s/logged_district", district);
-    int fl=open(log_p, O_WRONLY | O_CREAT |  O_APPEND, 0644);
-    if(fl!=-1)
-     {
-        char l[256];
-        sprintf(l, "%ld | %s | %s | remove %d\n", time(NULL), role, nume_utilizator, remove_id);
-        write(fl, l, strlen(l));
-        close(fl);
-     }
+      log_operation(district, role, nume_utilizator, "--remove_report");
+
     }
 
   //logica update threshold
@@ -571,17 +577,8 @@ int main(int argc, char *argv[])
 
         printf("Pragul de severitate actualizat\n");
 
-        //logam modificarea pragului
-        char log_p[512];
-        sprintf(log_p, "%s/logged_district", district);
-        int fd_log=open(log_p, O_WRONLY | O_CREAT | O_APPEND, 0644);
-        if(fd_log!=-1)
-           {
-                char entry[256];
-                sprintf(entry, "%ld | %s | %s | update_threshold %d\n", time(NULL), role, nume_utilizator, threshold_value);
-                write(fd_log, entry, strlen(entry));
-                close(fd_log);
-           }
+      //logam actualizarea de prag de severitate
+      log_operation(district, role, nume_utilizator, "--update_threshold");
     }
   return 0;
-}
+ }
