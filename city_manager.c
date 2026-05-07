@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #define nameSize 64
 #define categorySize 32
@@ -27,16 +28,11 @@ typedef struct
 //functie pt logare in logged_district-doar managerul poate scrie
 void log_operation(const char *district, const char *role, const char *user, const char *command)
 {
-        if(strcmp(role,"manager")!=0)
-            {
-                 printf("Doar managerul are drept de scriere in logged_district\n");
-                 return;
-            }
         char log_path[512];
         strcpy(log_path, district);
         strcat(log_path, "/logged_district");
 
-        int fd_log=open(log_path, O_WRONLY | O_CREAT | O_APPEND, 0644);
+        int fd_log=open(log_path, O_WRONLY | O_CREAT | O_APPEND, 0664);
         if(fd_log!=-1)
         {
             char entry[512];
@@ -580,5 +576,46 @@ int main(int argc, char *argv[])
       //logam actualizarea de prag de severitate
       log_operation(district, role, nume_utilizator, "--update_threshold");
     }
+
+  //logica stergere district
+  if(strcmp(command, "--remove_district")==0)
+	{
+		if(strcmp(role, "manager")!=0)
+		{
+			fprintf(stderr, "ERROR-doar managerul poate sterge un district\n");
+			return 1;
+		}
+
+    //stergem legatura simbolic
+    if(unlink(link_to_check)==0)
+        printf("Symlink ul a fost sters\n");
+    else
+		perror("ERROR-nu s-a putut sterge symlink ul");
+
+   //creare proces copil
+	pid_t pid=fork();
+    if(pid<0)
+	{
+		perror("ERROR-nu s-a putut crea procesul copil");
+		return 1;
+    }
+    else if(pid==0)
+	{
+		execlp("rm", "rm", "-rf", district, NULL);
+        perror("ERROR-exec a esuat");
+        exit(1);
+	}
+	else
+	{
+        int status;
+        wait(&status);
+
+		if(WIFEXITED(status) && WEXITSTATUS(status)==0)
+              printf("Directorul districtului a fost sters complet\n");
+        else
+              perror("ERROR-stergerea districtului a esuat");
+
+	}
+  }
   return 0;
  }
