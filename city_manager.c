@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 #define nameSize 64
 #define categorySize 32
@@ -381,8 +382,33 @@ int main(int argc, char *argv[])
         perror("WARNING-nu s a putut crea symbolic link\n");
    else printf("Link actualizat\n");
 
-    // creare fisier logged_district-scris de manager
-    log_operation(district, role, nume_utilizator, "--add");
+  //logica notificare monitor
+    int monitor_notified=0;
+    int monitor_fd=open(".monitor_pid", O_RDONLY);
+
+    if(monitor_fd!=-1)
+    {
+        char pid_buf[32];
+        ssize_t bytes_read=read(monitor_fd, pid_buf, sizeof(pid_buf)-1);
+        close(monitor_fd);
+
+        if(bytes_read>0)
+        {
+            pid_buf[bytes_read]='\0';
+            pid_t monitor_pid=(pid_t)atoi(pid_buf);
+            //trimitem semnalul sigusr1 catre monitor
+            if(kill(monitor_pid, SIGUSR1)==0)
+                monitor_notified=1;
+        }
+    }
+
+    char log_msg[512];
+    if(monitor_notified)
+        sprintf(log_msg, "--add | Monitor notificat cu succes");
+    else
+        sprintf(log_msg,"--add | Monitorul nu a fost notificat");
+
+    log_operation(district, role, nume_utilizator, log_msg);
 }
 
  //logica list
