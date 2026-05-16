@@ -23,6 +23,7 @@ void handle_sigint(int sig)
 void handle_sigusr1(int sig)
 {
     printf("A fost adaugat un nou raport\n");
+    fflush(stdout);//golim buffer ul de iesire ca textul sa fie trimis instant prin pipe catre hub
 }
 
 int main()
@@ -34,6 +35,7 @@ int main()
         char old_pid[16]={0};
         read(pid_file_fd, old_pid, 15);
         printf("ERROR-monitorul este deja activ cu pid-ul: %s\n", old_pid);
+        fflush(stdout);//golim buffer ul instant ca eroarea de duplicat sa ajunga imediat in hub prin pipe
         close(pid_file_fd);
         return 1;
     }
@@ -76,6 +78,7 @@ int main()
     close(fd);
 
     printf("Monitor pornit cu pid-ul: %d\n", pid);
+    fflush(stdout);
 
     while(1)
        pause();

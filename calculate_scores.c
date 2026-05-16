@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
 
     printf("Workload- District %s\n", argv[1]);
     for(int i=0;i<number_inspectors;i++)
-            printf("Inspector- %s | Workload score: %d\n", inspector_score[i].name, inspector_score[i].score);
+            printf("Nume- %s | Workload score: %d\n", inspector_score[i].name, inspector_score[i].score);
     printf("\n");
     return 0;
 }

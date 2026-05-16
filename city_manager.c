@@ -355,14 +355,12 @@ int main(int argc, char *argv[])
     close(fd);
     chmod(path, 0664);
 
-   // creare fisier district.cfg-doar de manager
-    if(strcmp(role,"manager")==0)
-    {
-        char cfg_path[512];
-        strcpy(cfg_path, district);
-        strcat(cfg_path, "/district.cfg");
+   // creare fisier district.cfg
+       char cfg_path[512];
+       strcpy(cfg_path, district);
+       strcat(cfg_path, "/district.cfg");
 
-        if(check_access(cfg_path, role, "write")==0)
+       if(check_access(cfg_path, role, "write")==0)
         {
                 int fd_cfg=open(cfg_path, O_WRONLY | O_CREAT, 0640);
                 if(fd_cfg!=-1)
@@ -373,7 +371,6 @@ int main(int argc, char *argv[])
                   }
                    else perror("ERROR-nu s-a putut crea district.cfg\n");
         }
-    }
 
     //actualizare symbolic link
     unlink(link_to_check);
