@@ -168,7 +168,6 @@ int main(int argc, char *argv[])
   char *command=NULL;
   char *district=NULL;
 
-  int index=1;
   int view_id=-1;
   int remove_id=-1;
   int threshold_value=-1;
@@ -612,7 +611,7 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 
-    //stergem legatura simbolic
+    //stergem legatura simbolica
     if(unlink(link_to_check)==0)
         printf("Symlink ul a fost sters\n");
     else
