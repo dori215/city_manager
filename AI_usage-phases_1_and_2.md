@@ -1,4 +1,4 @@
-SISTEME DE OPERARE 
+SISTEME DE OPERARE
 <div align="center">
 Cum am folosit AI-ul la proiect(Partea 1)
 </div>
@@ -10,10 +10,10 @@ Cum am folosit AI-ul la proiect(Partea 1)
 FAZA 1
 
 * 1. Instrument utilizat  
-    Am folosit Gemini pentru a ma asista la implementarea modulului de filtrare(--filter)
+     Am folosit Gemini pentru a ma asista la implementarea modulului de filtrare(--filter)
 
 * 2. Prompt-uri utilizate pentru filtrare  
-    Pentru a dezolta logica de filtrare, i-am cerut ajutorul asa:  
+     Pentru a dezolta logica de filtrare, i-am cerut ajutorul asa:  
      ->"Cum pot parsa eficient un argument de forma field:operator: value in C, folosind sscanf, pentru a extrage campurile separat?"  
      ->"Ajuta-ma sa implementez functia de comparare(match_condition) care trebuie sa verifice datele dintr-o structura in functie de operatori primiti ca string si explica-mi-o clar"  
      ->"Cum pot sa convertesc un string care reprezinta o data pentru a putea face comparari matematice?"
@@ -22,7 +22,7 @@ FAZA 1
      -> AI-ul compara datele ca niste numere simple, asa ca am adaugat atoll() pentru a transforma string-urile in time_t, altfel nu ar fi filtrat corect rapoartele  
      -> Am adaugat strcmp() pentru string-uri  
      -> Am scris bucla de citire din fisier si afisarea rezultatelor pentru a arata cat mai ordonat  
-     -> Am sugerat implementarea functiei generate_comparison() pentru a evita folosirea repetitiva a aceleasi bucati de cod  
+     -> Am sugerat implementarea functiei generate_comparison() pentru a evita folosirea repetitiva a aceleasi bucati de cod
 
 * 4. Ce am invatat din asta  
      ->desi Ai-ul te ajuta cu un punct de plecare, daca nu esti atent la detalii, programul poate genera rezultate complet gresite  
@@ -32,12 +32,12 @@ FAZA 1
 FAZA 2
 
 * 1. Instrument utilizat   
-     Am folosit tot Gemini-ul pentru a ma ajuta la crearea programului monitor_reports.c(pentru a-mi explica functiile specifice unix necesare fisierului) si la implementarea comunicarii prin semnale intre el si city_manager.c      
+     Am folosit tot Gemini-ul pentru a ma ajuta la crearea programului monitor_reports.c(pentru a-mi explica functiile specifice unix necesare fisierului) si la implementarea comunicarii prin semnale intre el si city_manager.c
 * 2. Prompt-uri  
      Nu intelegeam exact cum trebuie sa leg .c-urile intre ele si cum sa incep cu crearea monitor_reports.c  
      ->"Ce trebuie sa contina mai exact programul monitor_reports si care e ordinea corecta a operatiilor(scriere pid, setare semnale, asteptare)?"  
      ->"Explica-mi ce face functia sigaction si cum ar trebui integrata"   
-     ->"Cum pot sa leg .c-urile intre ele ca city_manager sa stie cand si unde sa trimita semnale catre monitor_reports?"  
+     ->"Cum pot sa leg .c-urile intre ele ca city_manager sa stie cand si unde sa trimita semnale catre monitor_reports?"
 
 * 3. Ce am modificat eu  
      ->AI-ul mi-a oferit explicatii detaliate despre functii si mi-a generat un schelet de baza pe care l-am adaptat cerintelor   
