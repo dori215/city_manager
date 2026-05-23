@@ -47,4 +47,19 @@ FAZA 2
 
 * 4. Ce am invatat  
      ->am invatat cum se realizeaza comunicarea prin semnale, cum sa folosesc un fisier pid pentru a face legatura intre 2 procese diferite  
-     ->am aflat cum se folosesc functii precum sigaction  
+     ->am aflat cum se folosesc functii precum sigaction
+
+
+FAZA 3    
+
+* 1. Instrument utilizat   
+     Tot Gemini    
+
+* 2. Prompt-uri      
+     ->"Cum pot sa-mi dau seama in parinte, dupa textul citit din pipe, daca monitorul s-a inchis normal aau a fost respins ca duplicat"?   
+
+* 3. Ce am modificat   
+     ->Am adaugat variabila duplicate in bucla de citire din hub pt a stii exact ce mesaj trebuie afisat la final   
+     ->Am adaugat fflush(stdout) dupa printf-uri deoarece nu se afisau mesajele din pipe
+* 4. Ce am invatat   
+     ->Am invatat cum functioneaza procesele in fundal si cum se afiseaza mesajele din pipe-uri
